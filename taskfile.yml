@@ -1,0 +1,66 @@
+version: "3"
+
+vars:
+  CLEAN_TARGET: '{{.CLEAN_TARGET | default "all"}}'
+
+tasks:
+  run:
+    cmds:
+      - zig build run
+    desc: Run the project
+    silent: true
+
+  run-wasm:
+    cmds:
+      - task: build-wasm
+      - python3 -m http.server 8080 --directory ./zig-out/htmlout
+    desc: Run the project using Emscripten and serve the HTML output at http://localhost:8080
+    silent: true
+
+  build-wasm:
+    cmds:
+      - zig build -Dtarget=wasm32-emscripten --sysroot "$EMSDK/upstream/emscripten"
+    desc: Build the project using Emscripten
+    silent: true
+
+  build:
+    cmds:
+      - zig build
+    desc: Build the project
+    silent: true
+
+  clean:
+    cmds:
+      - |
+        case {{.CLEAN_TARGET}} in
+          cache)
+            rm -rf .zig-cache
+            echo "Cleaned .zig-cache folder"
+            ;;
+          build)
+            rm -rf zig-out
+            echo "Cleaned zig-out folder"
+            ;;
+          all)
+            rm -rf .zig-cache zig-out
+            echo "Cleaned both .zig-cache and zig-out folders"
+            ;;
+          *)
+            echo "Invalid clean target. Use 'cache', 'build', or don't specify for both."
+            exit 1
+            ;;
+        esac
+    desc: >
+      Clean Zig project artifacts.
+      
+      Usage:
+        task clean CLEAN_TARGET=cache (removes .zig-cache)
+        task clean CLEAN_TARGET=build (removes zig-out)
+        task clean (removes both .zig-cache and zig-out)
+    silent: true
+
+  default:
+    cmds:
+      - task: run
+    desc: Run the project
+    silent: true
